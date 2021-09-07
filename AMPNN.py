@@ -39,7 +39,8 @@ class AMPNNConv(nn.Module):
 class AMPNNGNN(nn.Module):
 
     def __init__(self, node_in_feats, edge_in_feats, node_out_feats=64,
-                 edge_hidden_feats=128, num_step_message_passing=6):
+                 edge_hidden_feats=128, num_step_message_passing=6,
+                 shared_message_passing_weights=True):
         super(AMPNNGNN, self).__init__()
 
         self.project_node_feats = nn.Sequential(
@@ -49,24 +50,48 @@ class AMPNNGNN(nn.Module):
 
         self.num_step_message_passing = num_step_message_passing
 
-        message_nn = nn.Sequential(
-            nn.Linear(edge_in_feats, edge_hidden_feats),
-            nn.ReLU(),
-            nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
-        )
+        self.shared_message_passing_weights = shared_message_passing_weights
 
-        attention_nn = nn.Sequential(
-            nn.Linear(edge_in_feats, edge_hidden_feats),
-            nn.ReLU(),
-            nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
-        )
+        if shared_message_passing_weights:
+            message_nn = nn.Sequential(
+                nn.Linear(edge_in_feats, edge_hidden_feats),
+                nn.ReLU(),
+                nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
+            )
 
-        self.gnn_layer = AMPNNConv(
-            in_feats=node_out_feats,
-            out_feats=node_out_feats,
-            msg_fn=message_nn,
-            attn_fn=attention_nn
-        )
+            attention_nn = nn.Sequential(
+                nn.Linear(edge_in_feats, edge_hidden_feats),
+                nn.ReLU(),
+                nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
+            )
+
+            self.gnn_layer = AMPNNConv(
+                in_feats=node_out_feats,
+                out_feats=node_out_feats,
+                msg_fn=message_nn,
+                attn_fn=attention_nn
+            )
+        else:
+            self.gnn_layers = nn.ModuleList()
+            for _ in range(num_step_message_passing):
+                message_nn = nn.Sequential(
+                    nn.Linear(edge_in_feats, edge_hidden_feats),
+                    nn.ReLU(),
+                    nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
+                )
+
+                attention_nn = nn.Sequential(
+                    nn.Linear(edge_in_feats, edge_hidden_feats),
+                    nn.ReLU(),
+                    nn.Linear(edge_hidden_feats, node_out_feats * node_out_feats)
+                )
+
+                self.gnn_layers.append(AMPNNConv(
+                    in_feats=node_out_feats,
+                    out_feats=node_out_feats,
+                    msg_fn=message_nn,
+                    attn_fn=attention_nn
+                ))
 
         self.gru = nn.GRU(node_out_feats, node_out_feats)
 
@@ -74,9 +99,21 @@ class AMPNNGNN(nn.Module):
         """Reinitialize model parameters."""
         self.project_node_feats[0].reset_parameters()
         self.gnn_layer.reset_parameters()
-        for layer in self.gnn_layer.edge_func:
-            if isinstance(layer, nn.Linear):
-                layer.reset_parameters()
+        if self.shared_message_passing_weights:
+            for layer in self.gnn_layer.msg_fn:
+                if isinstance(layer, nn.Linear):
+                    layer.reset_parameters()
+            for layer in self.gnn_layer.attn_fn:
+                if isinstance(layer, nn.Linear):
+                    layer.reset_parameters()
+        else:
+            for conv_layer in self.gnn_layers:
+                for layer in conv_layer.msg_fn:
+                    if isinstance(layer, nn.Linear):
+                        layer.reset_parameters()
+                for layer in conv_layer.attn_fn:
+                    if isinstance(layer, nn.Linear):
+                        layer.reset_parameters()               
         self.gru.reset_parameters()
 
     def forward(self, g, node_feats, edge_feats):
@@ -103,18 +140,16 @@ class AMPNNPredictor(nn.Module):
                  node_out_feats=64,
                  edge_hidden_feats=128,
                  n_tasks=1,
-                 num_step_message_passing=6):
+                 num_step_message_passing=6,
+                 shared_message_passing_weights=True):
         super(AMPNNPredictor, self).__init__()
 
         self.gnn = AMPNNGNN(node_in_feats=node_in_feats,
                            node_out_feats=node_out_feats,
                            edge_in_feats=edge_in_feats,
                            edge_hidden_feats=edge_hidden_feats,
-                           num_step_message_passing=num_step_message_passing)
-        # TODO: GG-NN Readout
-        # self.readout = Set2Set(input_dim=node_out_feats,
-        #                        n_iters=num_step_set2set,
-        #                        n_layers=num_layer_set2set)
+                           num_step_message_passing=num_step_message_passing,
+                           shared_message_passing_weights=shared_message_passing_weights)
 
         self.gate_nn = nn.Sequential(
             nn.Linear(node_out_feats,1),
