@@ -60,18 +60,10 @@ class SAMPNGNN(nn.Module):
 
             self.gnn_layer = SAMPNConv(message_hidden_feats,self.W_in,self.W_h)
         else:
-            W_in = nn.Linear(node_in_feats+edge_in_feats,message_hidden_feats)
+            self.gnn_layers = nn.ModuleList()
 
-            W_h = nn.Linear(message_hidden_feats,message_hidden_feats)
-
-            gnn_layer = SAMPNConv(message_hidden_feats,W_in,W_h)
-
-            self.first_W_in = W_in
-
-            self.gnn_layers = nn.ModuleList({gnn_layer})
-
-            for _ in range(num_message_passing-1):
-                W_in = nn.Linear(message_hidden_feats,message_hidden_feats)
+            for _ in range(num_message_passing):
+                W_in = nn.Linear(node_in_feats+edge_in_feats,message_hidden_feats)
 
                 W_h = nn.Linear(message_hidden_feats,message_hidden_feats)
 
@@ -102,7 +94,7 @@ class SAMPNGNN(nn.Module):
             for _ in range(self.num_message_passing):
                 messages = self.gnn_layer(g, node_feats, edge_feats, messages)
         else:
-            messages = torch.relu(self.first_W_in(torch.cat((src_feats,edge_feats),dim=1)))
+            messages = torch.relu(self.gnn_layers[0].input_nn(torch.cat((src_feats,edge_feats),dim=1)))
             for _ in range(self.num_message_passing):
                 messages = self.gnn_layers[_](g, node_feats, edge_feats, messages)
         g.edata['message'] = messages
