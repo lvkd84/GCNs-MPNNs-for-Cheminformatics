@@ -108,12 +108,32 @@ class SAMPNGNN(nn.Module):
 from dgl.nn import AvgPooling
 # Convolutions + Readouts + FFNN
 class SAMPNPredictor(nn.Module):
-    
+    """
+    SAMPN model.
+    Parameters
+    ----------
+    edge_in_feats
+        Number of input edge features
+    node_in_feats
+        Number of input node features
+    node_out_feats
+        Number of output node features
+    message_hidden_feats
+        Number of hidden features
+    num_tasks
+        Number of prediction tasks
+    num_message_passing
+        Number of message passing layers
+    drop_out_rate
+        The drop-out rate at the fully-connected layers
+    shared_message_passing_weights
+        Whether the weights are shared among the message passing layers
+    """    
     def __init__(self,
-                 node_in_feats,
                  edge_in_feats,
-                 message_hidden_feats=128,
+                 node_in_feats,
                  node_out_feats=64,
+                 message_hidden_feats=128,
                  num_tasks=1,
                  num_message_passing=6,
                  drop_out_rate=0,

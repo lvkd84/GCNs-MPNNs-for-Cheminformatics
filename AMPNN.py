@@ -132,14 +132,35 @@ from dgl.nn.pytorch import GlobalAttentionPooling
 
 # TODO: Check dimensions of layers
 class AMPNNPredictor(nn.Module):
-
+    """
+    AMPNN model.
+    Parameters
+    ----------
+    edge_in_feats
+        Number of input edge features
+    node_in_feats
+        Number of input node features
+    node_out_feats
+        Number of output node features
+    edge_hidden_feats
+        Number of edge hidden features
+    num_tasks
+        Number of prediction tasks
+    num_message_passing
+        Number of message passing layers
+    drop_out_rate
+        The drop-out rate at the fully-connected layers
+    shared_message_passing_weights
+        Whether the weights are shared among the message passing layers
+    """    
     def __init__(self,
-                 node_in_feats,
                  edge_in_feats,
+                 node_in_feats,
                  node_out_feats=64,
                  edge_hidden_feats=128,
                  n_tasks=1,
                  num_step_message_passing=6,
+                 drop_out_rate=0,
                  shared_message_passing_weights=True):
         super(AMPNNPredictor, self).__init__()
 
@@ -163,6 +184,7 @@ class AMPNNPredictor(nn.Module):
         self.predict = nn.Sequential(
             nn.Linear(node_out_feats, node_out_feats),
             nn.ReLU(),
+            nn.Dropout(p=drop_out_rate),
             nn.Linear(node_out_feats, n_tasks)
         )
 

@@ -75,14 +75,33 @@ class DMPNNGNN(nn.Module):
 from dgl.nn import SumPooling
 # Convolutions + Readouts + FFNN
 class DMPNNPredictor(nn.Module):
-    
+    """
+    D-MPNN model.
+    Parameters
+    ----------
+    in_edge_feats
+        Number of input edge features
+    in_node_feats
+        Number of input node features
+    out_node_feats
+        Number of output node features
+    hidden_edge_feats
+        Number of edge hidden features
+    num_tasks
+        Number of prediction tasks
+    num_steps_passing
+        Number of message passing layers
+    drop_out_rate
+        The drop-out rate at the fully-connected layers
+    """  
     def __init__(self,
-                 in_node_feats, 
-                 in_edge_feats, 
+                 in_edge_feats,
+                 in_node_feats,  
                  out_node_feats=64,
                  hidden_edge_feats=128,
                  num_tasks=1,
-                 num_steps_passing=6):
+                 num_steps_passing=6,
+                 drop_out_rate=0):
         super(DMPNNPredictor, self).__init__()
 
         self.gnn = DMPNNGNN(in_node_feats, 
@@ -96,6 +115,7 @@ class DMPNNPredictor(nn.Module):
         self.predict = nn.Sequential(
             nn.Linear(out_node_feats,out_node_feats),
             nn.ReLU(),
+            nn.Dropout(p=drop_out_rate),
             nn.Linear(out_node_feats,num_tasks)
         )
     
