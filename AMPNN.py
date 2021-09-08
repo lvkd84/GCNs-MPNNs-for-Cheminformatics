@@ -3,7 +3,6 @@ import torch.nn.functional as F
 
 from dgl.nn.pytorch import NNConv
 from dgl.nn.functional import edge_softmax
-from dgl.utils import expand_as_pair
 import dgl.function as fn
 
 class AMPNNConv(nn.Module):

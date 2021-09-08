@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from dgl.utils import expand_as_pair
 import dgl.function as fn
 
 # Only the convolution

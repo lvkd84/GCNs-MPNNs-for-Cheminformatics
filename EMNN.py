@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from dgl.nn.functional import edge_softmax
-from dgl.utils import expand_as_pair
+# from dgl.nn.functional import edge_softmax
 import dgl.function as fn
 
 # Only the convolution
