@@ -69,7 +69,8 @@ class MolecularDataLoader(Iterable):
                 batch_size=8,
                 shuffle=True):
 
-        df = pd.read_csv(data_path)       
+        df = pd.read_csv(data_path)
+        self.tasks = task_names       
         self.dataset = MoleculeCSVDataset(df=df,
                         smiles_to_graph=smiles_to_bigraph,
                         node_featurizer=node_featurizer(atom_data_field='x'),
@@ -89,6 +90,9 @@ class MolecularDataLoader(Iterable):
             return next(self.dataloader)
         except StopIteration:
             raise StopIteration
+
+    def get_num_tasks(self):
+        return len(self.tasks)
 
 import os
 CURRENT_FOLDER = os.path.abspath(os.getcwd())
