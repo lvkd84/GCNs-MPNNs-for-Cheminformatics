@@ -93,7 +93,7 @@ class MolecularDataLoader(Iterable):
 import os
 CURRENT_FOLDER = os.path.abspath(os.getcwd())
 
-LIPO_PATH = CURRENT_FOLDER + '/' + 'Lipophilicity.csv'
+LIPO_PATH = CURRENT_FOLDER + '/datasets/' + 'Lipophilicity.csv'
 def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         edge_featurizer=CanonicalBondFeaturizer,
                         batch_size=8,
@@ -107,7 +107,7 @@ def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
 
-SIDER_PATH = CURRENT_FOLDER + '/' + 'sider.csv'
+SIDER_PATH = CURRENT_FOLDER + '/datasets/' + 'sider.csv'
 sider_tasks = ["Hepatobiliary disorders",
                 "Metabolism and nutrition disorders",
                 "Product issues",
@@ -148,7 +148,7 @@ def get_SIDER_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                             batch_size=batch_size,
                             shuffle=shuffle)
 
-BBBP_PATH = CURRENT_FOLDER + '/' + 'BBBP.csv'
+BBBP_PATH = CURRENT_FOLDER + '/datasets/' + 'BBBP.csv'
 def get_BBBP_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         edge_featurizer=CanonicalBondFeaturizer,
                         batch_size=8,
@@ -165,7 +165,7 @@ def get_BBBP_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 def get_HIV_dataset():
     pass
 
-MUV_PATH = CURRENT_FOLDER + '/' + 'muv.csv'
+MUV_PATH = CURRENT_FOLDER + '/datasets/' + 'muv.csv'
 muv_tasks = ['MUV-466',
             'MUV-548',
             'MUV-600',
