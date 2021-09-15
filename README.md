@@ -1,5 +1,7 @@
 # GCNs-MPNNs-for-Cheminformatics
-A collection of Graph-based deep learning methods for life-science
+Project is still under development...
+
+A collection of Graph-based deep learning methods for life sciences.
           
 * Packages:
   * torch
