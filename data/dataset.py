@@ -64,15 +64,17 @@ class MolecularDataLoader(Iterable):
                 data_path, 
                 task_names,
                 smile_column,
+                cache_file_path,
                 node_featurizer=CanonicalAtomFeaturizer,
                 edge_featurizer=CanonicalBondFeaturizer,
                 batch_size=8,
                 shuffle=True):
 
-        df = pd.read_csv(data_path)
+        self.df = pd.read_csv(data_path)
         self.tasks = task_names       
-        self.dataset = MoleculeCSVDataset(df=df,
+        self.dataset = MoleculeCSVDataset(df=self.df,
                         smiles_to_graph=smiles_to_bigraph,
+                        cache_file_path=cache_file_path,
                         node_featurizer=node_featurizer(atom_data_field='x'),
                         edge_featurizer=edge_featurizer(bond_data_field='edge_attr'),
                         smiles_column=smile_column,
@@ -95,7 +97,8 @@ class MolecularDataLoader(Iterable):
         return len(self.tasks)
 
 import os
-CURRENT_FOLDER = os.path.abspath(os.getcwd())
+CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
+CACHE_FOLDER = os.path.abspath(os.getcwd())
 
 LIPO_PATH = CURRENT_FOLDER + '/datasets/' + 'Lipophilicity.csv'
 def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
@@ -106,6 +109,7 @@ def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
     return MolecularDataLoader(data_path=LIPO_PATH,
                                 task_names='exp',
                                 smile_column='smiles',
+                                cache_file_path=CACHE_FOLDER+'/LIPO.bin',
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -147,6 +151,7 @@ def get_SIDER_dataloader(node_featurizer=CanonicalAtomFeaturizer,
     return MolecularDataLoader(data_path=SIDER_PATH,
                             task_names=sider_tasks,
                             smile_column='smiles',
+                            cache_file_path=CACHE_FOLDER+'/SIDER.bin',
                             node_featurizer=node_featurizer,
                             edge_featurizer=edge_featurizer,
                             batch_size=batch_size,
@@ -158,9 +163,10 @@ def get_BBBP_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         batch_size=8,
                         shuffle=True):
     
-    return MolecularDataLoader(data_path=SIDER_PATH,
+    return MolecularDataLoader(data_path=BBBP_PATH,
                             task_names='p_np',
                             smile_column='smiles',
+                            cache_file_path=CACHE_FOLDER+'/BBBP.bin',
                             node_featurizer=node_featurizer,
                             edge_featurizer=edge_featurizer,
                             batch_size=batch_size,
@@ -195,6 +201,7 @@ def get_MUV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
     return MolecularDataLoader(data_path=MUV_PATH,
                             task_names=muv_tasks,
                             smile_column='smiles',
+                            cache_file_path=CACHE_FOLDER+'/MUV.bin',
                             node_featurizer=node_featurizer,
                             edge_featurizer=edge_featurizer,
                             batch_size=batch_size,
