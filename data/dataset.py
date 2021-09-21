@@ -79,6 +79,11 @@ class MolecularDataLoader(Iterable):
                         edge_featurizer=edge_featurizer(bond_data_field='edge_attr'),
                         smiles_column=smile_column,
                         task_names=task_names)
+
+        _, graph, _, _ = self.dataset[0]
+        self.num_node_attrs = graph.ndata['x'].shape[1]
+        self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
+        
         self.dataloader = DataLoader(self.dataset,
                                     collate_fn=collate_molgraphs,
                                     batch_size=batch_size,
@@ -88,10 +93,7 @@ class MolecularDataLoader(Iterable):
         return len(self.dataset)
 
     def __iter__(self):
-        try:
-            return next(self.dataloader)
-        except StopIteration:
-            raise StopIteration
+        return self.dataloader._get_iterator()
 
     def get_num_tasks(self):
         return len(self.tasks)
