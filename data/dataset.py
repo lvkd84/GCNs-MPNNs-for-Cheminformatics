@@ -83,7 +83,7 @@ class MolecularDataLoader(Iterable):
         _, graph, _, _ = self.dataset[0]
         self.num_node_attrs = graph.ndata['x'].shape[1]
         self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
-        
+
         self.dataloader = DataLoader(self.dataset,
                                     collate_fn=collate_molgraphs,
                                     batch_size=batch_size,
@@ -93,7 +93,7 @@ class MolecularDataLoader(Iterable):
         return len(self.dataset)
 
     def __iter__(self):
-        return self.dataloader._get_iterator()
+        return iter(self.dataloader)
 
     def get_num_tasks(self):
         return len(self.tasks)
@@ -109,7 +109,7 @@ def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         shuffle=True):
 
     return MolecularDataLoader(data_path=LIPO_PATH,
-                                task_names='exp',
+                                task_names=['exp'],
                                 smile_column='smiles',
                                 cache_file_path=CACHE_FOLDER+'/LIPO.bin',
                                 node_featurizer=node_featurizer,
@@ -166,7 +166,7 @@ def get_BBBP_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         shuffle=True):
     
     return MolecularDataLoader(data_path=BBBP_PATH,
-                            task_names='p_np',
+                            task_names=['p_np'],
                             smile_column='smiles',
                             cache_file_path=CACHE_FOLDER+'/BBBP.bin',
                             node_featurizer=node_featurizer,
