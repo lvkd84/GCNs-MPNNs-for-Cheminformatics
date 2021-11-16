@@ -61,7 +61,7 @@ class MolecularDataLoader(Iterable):
         Callable edge featurizing function.
     """    
     def __init__(self, 
-                data_path, 
+                data, 
                 task_names,
                 smile_column,
                 cache_file_path,
@@ -70,7 +70,7 @@ class MolecularDataLoader(Iterable):
                 batch_size=8,
                 shuffle=True):
 
-        self.df = pd.read_csv(data_path)
+        self.df = data
         self.tasks = task_names       
         self.dataset = MoleculeCSVDataset(df=self.df,
                         smiles_to_graph=smiles_to_bigraph,
@@ -80,9 +80,10 @@ class MolecularDataLoader(Iterable):
                         smiles_column=smile_column,
                         task_names=task_names)
 
-        _, graph, _, _ = self.dataset[0]
+        _, graph, labels, _ = self.dataset[0]
         self.num_node_attrs = graph.ndata['x'].shape[1]
         self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
+        self.num_tasks = labels.shape[0]
 
         self.dataloader = DataLoader(self.dataset,
                                     collate_fn=collate_molgraphs,
@@ -99,119 +100,423 @@ class MolecularDataLoader(Iterable):
         return len(self.tasks)
 
 import os
-CURRENT_FOLDER = os.path.dirname(os.path.abspath(__file__))
 CACHE_FOLDER = os.path.abspath(os.getcwd())
 
-LIPO_PATH = CURRENT_FOLDER + '/datasets/' + 'Lipophilicity.csv'
+from tdc.single_pred import ADME
+
+# Caco2 dataset
+
+def get_caco2():
+    data_df = ADME(name = 'Caco2_Wang').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_Caco2_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_caco2(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/Caco2.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+# HIA dataset
+
+def get_hia():
+    data_df = ADME(name = 'HIA_Hou').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_HIA_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_hia(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/Caco2.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+# Pgb dataset
+
+def get_pgb():
+    data_df = ADME(name = 'Pgp_Broccatelli').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_HIA_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_pgb(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/Pgb.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+# LIPO dataset
+
+def get_lipo():
+    data_df = ADME(name = 'Lipophilicity_AstraZeneca').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
 def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         edge_featurizer=CanonicalBondFeaturizer,
                         batch_size=8,
                         shuffle=True):
 
-    return MolecularDataLoader(data_path=LIPO_PATH,
-                                task_names=['exp'],
-                                smile_column='smiles',
+    return MolecularDataLoader(data=get_lipo(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/LIPO.bin',
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
 
-SIDER_PATH = CURRENT_FOLDER + '/datasets/' + 'sider.csv'
-sider_tasks = ["Hepatobiliary disorders",
-                "Metabolism and nutrition disorders",
-                "Product issues",
-                "Eye disorders",
-                "Investigations",
-                "Musculoskeletal and connective tissue disorders",
-                "Gastrointestinal disorders",
-                "Social circumstances",
-                "Immune system disorders",
-                "Reproductive system and breast disorders",
-                "Neoplasms benign, malignant and unspecified (incl cysts and polyps)",
-                "General disorders and administration site conditions",
-                "Endocrine disorders",
-                "Surgical and medical procedures",
-                "Vascular disorders",
-                "Blood and lymphatic system disorders",
-                "Skin and subcutaneous tissue disorders",
-                "Congenital, familial and genetic disorders",
-                "Infections and infestations",
-                "Respiratory, thoracic and mediastinal disorders",
-                "Psychiatric disorders",
-                "Renal and urinary disorders",
-                "Pregnancy, puerperium and perinatal conditions",
-                "Ear and labyrinth disorders",
-                "Cardiac disorders",
-                "Nervous system disorders",
-                "Injury, poisoning and procedural complications"]
-def get_SIDER_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+# AqSol dataset
+
+def get_aqsol():
+    data_df = ADME(name = 'Solubility_AqSolDB').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_AqSol_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         edge_featurizer=CanonicalBondFeaturizer,
                         batch_size=8,
                         shuffle=True):
 
-    return MolecularDataLoader(data_path=SIDER_PATH,
-                            task_names=sider_tasks,
-                            smile_column='smiles',
-                            cache_file_path=CACHE_FOLDER+'/SIDER.bin',
-                            node_featurizer=node_featurizer,
-                            edge_featurizer=edge_featurizer,
-                            batch_size=batch_size,
-                            shuffle=shuffle)
+    return MolecularDataLoader(data=get_aqsol(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/AqSol.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
 
-BBBP_PATH = CURRENT_FOLDER + '/datasets/' + 'BBBP.csv'
-def get_BBBP_dataloader(node_featurizer=CanonicalAtomFeaturizer,
-                        edge_featurizer=CanonicalBondFeaturizer,
-                        batch_size=8,
-                        shuffle=True):
-    
-    return MolecularDataLoader(data_path=BBBP_PATH,
-                            task_names=['p_np'],
-                            smile_column='smiles',
-                            cache_file_path=CACHE_FOLDER+'/BBBP.bin',
-                            node_featurizer=node_featurizer,
-                            edge_featurizer=edge_featurizer,
-                            batch_size=batch_size,
-                            shuffle=shuffle)
+# FreeSolve
 
-def get_HIV_dataset():
-    pass
+def get_freesolv():
+    data_df = ADME(name = 'HydrationFreeEnergy_FreeSolv').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
 
-MUV_PATH = CURRENT_FOLDER + '/datasets/' + 'muv.csv'
-muv_tasks = ['MUV-466',
-            'MUV-548',
-            'MUV-600',
-            'MUV-644',
-            'MUV-652',
-            'MUV-689',
-            'MUV-692',
-            'MUV-712',
-            'MUV-713',
-            'MUV-733',
-            'MUV-737',
-            'MUV-810',
-            'MUV-832',
-            'MUV-846',
-            'MUV-852',
-            'MUV-858',
-            'MUV-859']
-def get_MUV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+def get_FreeSolv_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                         edge_featurizer=CanonicalBondFeaturizer,
                         batch_size=8,
                         shuffle=True):
 
-    return MolecularDataLoader(data_path=MUV_PATH,
-                            task_names=muv_tasks,
-                            smile_column='smiles',
-                            cache_file_path=CACHE_FOLDER+'/MUV.bin',
-                            node_featurizer=node_featurizer,
-                            edge_featurizer=edge_featurizer,
-                            batch_size=batch_size,
-                            shuffle=shuffle)
+    return MolecularDataLoader(data=get_freesolv(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/FreeSolv.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
 
-def get_ESOL_dataset():
-    pass
+# BBBP dataset
 
-def get_TOX21_dataset():
-    pass
+#TODO: MolNet or TDCommons?
+
+# PPBR dataset
+
+def get_ppbr():
+    data_df = ADME(name = 'PPBR_AZ').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_PPBR_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_ppbr(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/PPBR.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+# VDss dataset
+
+def get_vdss():
+    data_df = ADME(name = 'VDss_Lombardo').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_VDss_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_vdss(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/VDss.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+from tdc.utils import retrieve_label_name_list
+from tdc.single_pred import Tox
+
+# Tox21
+
+tox21_tasks = retrieve_label_name_list('Tox21')
+def get_tox21(tasks=None):
+    if tasks == None:
+        tasks = tox21_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in tox21_tasks for a in tasks):
+            # Raise error
+            pass
+    data_list = []
+    mols = {}
+    for task in tasks:
+        data_list.append(Tox(name = 'Tox21', label_name = task).get_data().rename(columns={"Y": task}))
+        for _, row in data_list[-1].iterrows():
+            if row['Drug_ID'] not in mols:
+                mols[row['Drug_ID']] = row['Drug']
+        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+    for task_data in data_list:
+        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_Tox21_dataloader(tasks = None,
+                        node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    if tasks == None:
+        tasks = tox21_tasks
+
+    return MolecularDataLoader(data=get_tox21(tasks=tasks),
+                                task_names=tasks,
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/tox21.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+# ToxCast
+
+# toxcast_tasks = retrieve_label_name_list('Toxcast')
+
+# def get_toxcast(tasks=None):
+#     if tasks == None:
+#         tasks = toxcast_tasks
+#     else:
+#         tasks = list(set(tasks))
+#         if not all(a in toxcast_tasks for a in tasks):
+#             # Raise error
+#             pass
+#     data_list = []
+#     mols = {}
+#     for task in tasks:
+#         data_list.append(Tox(name = 'ToxCast', label_name = task).get_data().rename(columns={"Y": task}))
+#         for _, row in data_list[-1].iterrows():
+#             if row['Drug_ID'] not in mols:
+#                 mols[row['Drug_ID']] = row['Drug']
+#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+#     for task_data in data_list:
+#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+# def get_ToxCast_dataloader(tasks = None,
+#                         node_featurizer=CanonicalAtomFeaturizer,
+#                         edge_featurizer=CanonicalBondFeaturizer,
+#                         batch_size=8,
+#                         shuffle=True):
+
+#     if tasks == None:
+#         tasks = toxcast_tasks
+
+#     return MolecularDataLoader(data=get_toxcast(tasks=tasks),
+#                                 task_names=tasks,
+#                                 smile_column='Smiles',
+#                                 cache_file_path=CACHE_FOLDER+'/toxcast.bin',
+#                                 node_featurizer=node_featurizer,
+#                                 edge_featurizer=edge_featurizer,
+#                                 batch_size=batch_size,
+#                                 shuffle=shuffle)
+
+def get_clintox():
+    data_df = Tox(name = 'ClinTox').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_ClinTox_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_clintox(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/clintox.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+from tdc.single_pred import HTS
+# HIV dataset
+
+def get_hiv():
+    data_df = HTS(name = 'HIV').get_data()
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_HIV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    return MolecularDataLoader(data=get_hiv(),
+                                task_names=['Y'],
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/hiv.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+from tdc.single_pred import QM
+
+#QM7b
+qm7b_tasks = retrieve_label_name_list('QM7b')
+def get_qm7b(tasks=None):
+    if tasks == None:
+        tasks = qm7b_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in qm7b_tasks for a in tasks):
+            # Raise error
+            pass
+    data_list = []
+    mols = {}
+    for task in tasks:
+        data_list.append(QM(name = 'QM7b', label_name = task).get_data().rename(columns={"Y": task}))
+        for _, row in data_list[-1].iterrows():
+            if row['Drug_ID'] not in mols:
+                mols[row['Drug_ID']] = row['Drug']
+        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+    for task_data in data_list:
+        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_QM7b_dataloader(tasks = None,
+                        node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    if tasks == None:
+        tasks = qm7b_tasks
+
+    return MolecularDataLoader(data=get_qm7b(tasks=tasks),
+                                task_names=tasks,
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/qm7.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+#QM8
+qm8_tasks = retrieve_label_name_list('QM8')
+def get_qm8(tasks=None):
+    if tasks == None:
+        tasks = qm8_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in qm8_tasks for a in tasks):
+            # Raise error
+            pass
+    data_list = []
+    mols = {}
+    for task in tasks:
+        data_list.append(QM(name = 'QM8', label_name = task).get_data().rename(columns={"Y": task}))
+        for _, row in data_list[-1].iterrows():
+            if row['Drug_ID'] not in mols:
+                mols[row['Drug_ID']] = row['Drug']
+        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+    for task_data in data_list:
+        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_QM8_dataloader(tasks = None,
+                        node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    if tasks == None:
+        tasks = qm8_tasks
+
+    return MolecularDataLoader(data=get_qm8(tasks=tasks),
+                                task_names=tasks,
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/qm8.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
+
+#QM9
+qm9_tasks = retrieve_label_name_list('QM8')
+def get_qm9(tasks=None):
+    if tasks == None:
+        tasks = qm9_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in qm9_tasks for a in tasks):
+            # Raise error
+            pass
+    data_list = []
+    mols = {}
+    for task in tasks:
+        data_list.append(QM(name = 'QM9', label_name = task).get_data().rename(columns={"Y": task}))
+        for _, row in data_list[-1].iterrows():
+            if row['Drug_ID'] not in mols:
+                mols[row['Drug_ID']] = row['Drug']
+        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+    for task_data in data_list:
+        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+
+def get_QM9_dataloader(tasks = None,
+                        node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
+
+    if tasks == None:
+        tasks = qm9_tasks
+
+    return MolecularDataLoader(data=get_qm9(tasks=tasks),
+                                task_names=tasks,
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/qm9.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
 
