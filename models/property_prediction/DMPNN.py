@@ -131,19 +131,7 @@ class DMPNNPredictor(nn.Module):
         g_feats = self.readout(g, node_feats)
         return self.predict(g_feats)
 
-
-class RMSELoss(nn.Module):
-    def __init__(self, reduction='mean'):
-        super(RMSELoss, self).__init__()
-        self.reduction = reduction 
-
-    def forward(self,input,target):
-        return torch.sqrt(F.mse_loss(input, target, reduction=self.reduction))
-
-metrics_dic = {
-    'rmse': RMSELoss
-}
-
+from metrics import METRICS
 class DMPNN:
     """
     D-MPNN model.
@@ -173,7 +161,7 @@ class DMPNN:
         self.drop_out_rate = drop_out_rate
         self.fitted = False
         self.metrics = metrics
-        self.loss = metrics_dic[metrics]()
+        self.loss = METRICS[metrics]()
 
     def __predict__(self, model, bg, device):
         bg = bg.to(device)
