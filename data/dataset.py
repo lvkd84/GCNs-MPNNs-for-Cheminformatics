@@ -1,8 +1,9 @@
 from typing import Iterable
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
 import dgl
+import random
+from torch.utils.data import DataLoader
 from dgllife.data import MoleculeCSVDataset
 from dgllife.utils import smiles_to_bigraph, CanonicalAtomFeaturizer, CanonicalBondFeaturizer
 
@@ -59,6 +60,12 @@ class MolecularDataLoader(Iterable):
         Callable node featurizing function.
     edge_featurizer
         Callable edge featurizing function.
+    batch_size
+        Size of train/eval/test batch
+    shuffle
+        Whether to shuffle the data
+    train_val_test
+        A tuple of 3 specifying the sizes of data splitting
     """    
     def __init__(self, 
                 data, 
@@ -69,9 +76,11 @@ class MolecularDataLoader(Iterable):
                 edge_featurizer=CanonicalBondFeaturizer,
                 batch_size=8,
                 shuffle=True):
-
+            
         self.df = data
-        self.tasks = task_names       
+        self.tasks = task_names     
+        self.shuffle = shuffle  
+        self.batch_size = batch_size
         self.dataset = MoleculeCSVDataset(df=self.df,
                         smiles_to_graph=smiles_to_bigraph,
                         cache_file_path=cache_file_path,
@@ -80,15 +89,14 @@ class MolecularDataLoader(Iterable):
                         smiles_column=smile_column,
                         task_names=task_names)
 
-        _, graph, labels, _ = self.dataset[0]
+        _, graph, _, _ = self.dataset[0]
         self.num_node_attrs = graph.ndata['x'].shape[1]
         self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
-        self.num_tasks = labels.shape[0]
 
         self.dataloader = DataLoader(self.dataset,
                                     collate_fn=collate_molgraphs,
-                                    batch_size=batch_size,
-                                    shuffle=shuffle)
+                                    batch_size=self.batch_size,
+                                    shuffle=self.shuffle)
 
     def __len__(self):
         return len(self.dataset)
@@ -96,8 +104,43 @@ class MolecularDataLoader(Iterable):
     def __iter__(self):
         return iter(self.dataloader)
 
+    def get_splits(self, train_val_test=(0.7,0.1,0.2)):
+
+        if len(train_val_test) != 3:
+            raise Exception("train_val_test must be None or a tuple of 3 values.")
+        if sum(train_val_test) != 1:
+            raise Exception("Sum of train, val, and test proportions must be 1.")
+        idx = list(range(len(self.dataset)))
+        if self.shuffle:
+            random.shuffle(idx)
+        train_idx = idx[0:int(train_val_test[0]*len(idx))]
+        val_idx = idx[int(train_val_test[0]*len(idx)):int(train_val_test[0]*len(idx))+int(train_val_test[1]*len(idx))]
+        test_idx = idx[int(train_val_test[0]*len(idx))+int(train_val_test[1]*len(idx)):]
+        train_loader = DataLoader([self.dataset[i] for i in train_idx],
+                                        collate_fn=collate_molgraphs,
+                                        batch_size=self.batch_size,
+                                        shuffle=self.shuffle)
+        val_loader = DataLoader([self.dataset[i] for i in val_idx],
+                                        collate_fn=collate_molgraphs,
+                                        batch_size=self.batch_size,
+                                        shuffle=self.shuffle)
+        test_loader = DataLoader([self.dataset[i] for i in test_idx],
+                                        collate_fn=collate_molgraphs,
+                                        batch_size=self.batch_size,
+                                        shuffle=self.shuffle)
+        return train_loader, val_loader, test_loader
+
+    def get_folds(self, nfolds=5):
+        pass
+
     def get_num_tasks(self):
         return len(self.tasks)
+
+    def get_num_node_attrs(self):
+        return self.num_node_attrs
+
+    def get_num_edge_attrs(self):
+        return self.num_edge_attrs
 
 import os
 CACHE_FOLDER = os.path.abspath(os.getcwd())
