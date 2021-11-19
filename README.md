@@ -17,6 +17,12 @@ A collection of Graph-based deep learning methods for life sciences.
     * EMNN (https://jcheminf.biomedcentral.com/articles/10.1186/s13321-019-0407-y)
     * SAMPN (https://jcheminf.biomedcentral.com/articles/10.1186/s13321-020-0414-z)
     * DimeNet (https://arxiv.org/abs/2003.03123)
+    * GAT
+    * GCN
+    * MPNN
+    * MGCN
+    * SchNet
+    * WeaveNet
   * Large molecules (polymeres and proteins):
     * TBD
 
