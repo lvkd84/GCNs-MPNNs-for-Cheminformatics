@@ -1,14 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import dgl.function as fn
-
-import numpy as np
-
-from dgllife.utils import Meter
-from dgllife.data import MoleculeCSVDataset
-from dgllife.utils import smiles_to_bigraph, CanonicalAtomFeaturizer, CanonicalBondFeaturizer
 from dgl import batch
 
 # Only the convolution
@@ -131,7 +124,7 @@ class DMPNNPredictor(nn.Module):
         g_feats = self.readout(g, node_feats)
         return self.predict(g_feats)
 
-from metrics import METRICS
+from utils import _train, _eval, _predict
 class DMPNN:
     """
     D-MPNN model.
@@ -161,7 +154,6 @@ class DMPNN:
         self.drop_out_rate = drop_out_rate
         self.fitted = False
         self.metrics = metrics
-        self.loss = METRICS[metrics]()
 
     def __predict__(self, model, bg, device):
         bg = bg.to(device)
@@ -184,42 +176,14 @@ class DMPNN:
                                     num_tasks,
                                     self.num_steps_passing,
                                     self.drop_out_rate)
-        if self.cuda:
-            if torch.cuda.is_available():
-                device = torch.device('cuda')
-            else:
-                print("No cuda found. Train on CPU instead")
-                device = torch.device('cpu')
-        else:
-            device = torch.device('cpu')
+        _train(self.model, 
+                train_loader, 
+                learning_rate=learning_rate, 
+                cuda=self.cuda, 
+                epochs=epochs, 
+                metrics=self.metrics, 
+                optimizer='adam')
 
-        self.model.to(device)
-
-        loss_criterion = self.loss
-        optimizer = torch.optim.Adam(self.model.parameters(),lr=learning_rate)
-
-        for epoch in range(epochs):
-            print("Epoch:", epoch)
-            self.model.train()
-            train_meter = Meter()
-            for batch_id, batch_data in enumerate(train_loader):
-                _, bg, labels, masks = batch_data
-                labels = labels.to(device)
-                masks = masks.to(device)
-                prediction = self.__predict__(self.model, bg, device)
-                loss = (loss_criterion(prediction, labels) * (masks != 0).float()).mean()
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                train_meter.update(prediction, labels, masks)
-                if batch_id % 100 == 0:
-                    print('epoch {:d}/{:d}, batch {:d}/{:d}, loss {:.4f}'.format(
-                        epoch + 1, 10, batch_id + 1, len(train_loader), loss.item()))
-            train_score = np.mean(train_meter.compute_metric(self.metrics))
-            print('epoch {:d}/{:d}, training {} {:.4f}'.format(
-                epoch + 1, epochs, 'score', train_score))
-        
-        print("Finished training.")
         self.fitted = True
 
     def predict(self,
@@ -227,37 +191,15 @@ class DMPNN:
         if not self.fitted:
             print("Model has not been trained yet.")
         else:
-            if self.cuda:
-                if torch.cuda.is_available():
-                    device = torch.device('cuda')
-                else:
-                    print("No cuda found. Train on CPU instead")
-                    device = torch.device('cpu')
-            else:
-                device = torch.device('cpu')
             bg = batch(test_graphs)
-            self.model.eval()
-            return self.__predict__(self.model, bg, device)
+            return _predict(self.model, bg, self.cuda)
 
     def evaluate(self,
                  val_data_loader):
         if not self.fitted:
             print("Model has not been trained yet.")
         else:
-            if self.cuda:
-                if torch.cuda.is_available():
-                    device = torch.device('cuda')
-                else:
-                    print("No cuda found. Train on CPU instead")
-                    device = torch.device('cpu')
-            else:
-                device = torch.device('cpu')
-            eval_meter = Meter()
-            for _, batch_data in enumerate(val_data_loader):
-                _, bg, labels, masks = batch_data
-                labels = labels.to(device)
-                masks = masks.to(device)
-                prediction = self.__predict__(self.model, bg, device)
-                eval_meter.update(prediction, labels, masks)
-            eval_score = np.mean(eval_meter.compute_metric(self.metrics))
-            return eval_score
+            return _eval(self.model,
+                        val_data_loader, 
+                        metrics=self.metrics, 
+                        cuda=self.cuda)

@@ -1,5 +1,5 @@
 from .AMPNN import AMPNNPredictor
-from .DMPNN import DMPNNPredictor
+from .DMPNN import DMPNN
 from .SAMPNN import SAMPNPredictor
 from .EMNN import EMNNPredictor
 from .DimeNet import DimePredictor
