@@ -155,12 +155,6 @@ class DMPNN:
         self.fitted = False
         self.metrics = metrics
 
-    def __predict__(self, model, bg, device):
-        bg = bg.to(device)
-        node_feats = bg.ndata.pop('x').to(device)
-        edge_feats = bg.edata.pop('edge_attr').to(device)
-        return model(bg, node_feats, edge_feats)
-
     def fit(self,
             train_loader,
             epochs=50,
