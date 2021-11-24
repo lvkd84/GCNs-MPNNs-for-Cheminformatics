@@ -4,8 +4,9 @@ import torch
 import dgl
 import random
 from torch.utils.data import DataLoader
-from dgllife.data import MoleculeCSVDataset
-from dgllife.utils import smiles_to_bigraph, CanonicalAtomFeaturizer, CanonicalBondFeaturizer
+from dgllife.utils import smiles_to_bigraph, mol_to_bigraph
+from csv_dataset import MoleculeCSVDataset
+from featurizer import *
 
 def collate_molgraphs(data):
     """Batching a list of datapoints for dataloader.
@@ -52,10 +53,12 @@ class MolecularDataLoader(Iterable):
         Path to the data file. File must be csv.
     task_names
         Names of label columns. Each column corresponds to a task.
-    smile_column
-        Name of the column that contains the SMILE strings.
+    mol_column
+        Name of the column that contains the molecule info.
     message_hidden_feats
         Number of hidden features.
+    mol_as_smiles
+        Whether the molecules are represented as Smiles.
     node_featurizer
         Callable node featurizing function.
     edge_featurizer
@@ -70,8 +73,9 @@ class MolecularDataLoader(Iterable):
     def __init__(self, 
                 data, 
                 task_names,
-                smile_column,
+                mol_column,
                 cache_file_path,
+                mol_as_smiles,
                 node_featurizer=CanonicalAtomFeaturizer,
                 edge_featurizer=CanonicalBondFeaturizer,
                 batch_size=8,
@@ -81,13 +85,18 @@ class MolecularDataLoader(Iterable):
         self.tasks = task_names     
         self.shuffle = shuffle  
         self.batch_size = batch_size
+        if mol_as_smiles:
+            to_graph_func = smiles_to_bigraph
+        else:
+            to_graph_func = mol_to_bigraph
         self.dataset = MoleculeCSVDataset(df=self.df,
-                        smiles_to_graph=smiles_to_bigraph,
-                        cache_file_path=cache_file_path,
-                        node_featurizer=node_featurizer(atom_data_field='x'),
-                        edge_featurizer=edge_featurizer(bond_data_field='edge_attr'),
-                        smiles_column=smile_column,
-                        task_names=task_names)
+                                        to_graph_func=to_graph_func,
+                                        cache_file_path=cache_file_path,
+                                        node_featurizer=node_featurizer(atom_data_field='x'),
+                                        edge_featurizer=edge_featurizer(bond_data_field='edge_attr'),
+                                        mol_column=mol_column,
+                                        task_names=task_names,
+                                        mol_as_smiles=mol_as_smiles)
 
         _, graph, _, _ = self.dataset[0]
         self.num_node_attrs = graph.ndata['x'].shape[1]
@@ -160,8 +169,9 @@ def get_Caco2_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_caco2(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/Caco2.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -180,8 +190,9 @@ def get_HIA_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_hia(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
-                                cache_file_path=CACHE_FOLDER+'/Caco2.bin',
+                                mol_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/HIA.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -200,8 +211,9 @@ def get_HIA_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_pgb(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/Pgb.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -220,8 +232,9 @@ def get_LIPO_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_lipo(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/LIPO.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -240,8 +253,9 @@ def get_AqSol_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_aqsol(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/AqSol.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -260,8 +274,9 @@ def get_FreeSolv_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_freesolv(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/FreeSolv.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -284,8 +299,9 @@ def get_PPBR_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_ppbr(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/PPBR.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -304,8 +320,9 @@ def get_VDss_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_vdss(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/VDss.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -349,55 +366,57 @@ def get_Tox21_dataloader(tasks = None,
 
     return MolecularDataLoader(data=get_tox21(tasks=tasks),
                                 task_names=tasks,
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/tox21.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
 
-ToxCast
+#ToxCast
 
-toxcast_tasks = retrieve_label_name_list('Toxcast')
+# toxcast_tasks = retrieve_label_name_list('Toxcast')
 
-def get_toxcast(tasks=None):
-    if tasks == None:
-        tasks = toxcast_tasks
-    else:
-        tasks = list(set(tasks))
-        if not all(a in toxcast_tasks for a in tasks):
-            # Raise error
-            pass
-    data_list = []
-    mols = {}
-    for task in tasks:
-        data_list.append(Tox(name = 'ToxCast', label_name = task).get_data().rename(columns={"Y": task}))
-        for _, row in data_list[-1].iterrows():
-            if row['Drug_ID'] not in mols:
-                mols[row['Drug_ID']] = row['Drug']
-        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-    for task_data in data_list:
-        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+# def get_toxcast(tasks=None):
+#     if tasks == None:
+#         tasks = toxcast_tasks
+#     else:
+#         tasks = list(set(tasks))
+#         if not all(a in toxcast_tasks for a in tasks):
+#             # Raise error
+#             pass
+#     data_list = []
+#     mols = {}
+#     for task in tasks:
+#         data_list.append(Tox(name = 'ToxCast', label_name = task).get_data().rename(columns={"Y": task}))
+#         for _, row in data_list[-1].iterrows():
+#             if row['Drug_ID'] not in mols:
+#                 mols[row['Drug_ID']] = row['Drug']
+#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+#     for task_data in data_list:
+#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
 
-def get_ToxCast_dataloader(tasks = None,
-                        node_featurizer=CanonicalAtomFeaturizer,
-                        edge_featurizer=CanonicalBondFeaturizer,
-                        batch_size=8,
-                        shuffle=True):
+# def get_ToxCast_dataloader(tasks = None,
+#                         node_featurizer=CanonicalAtomFeaturizer,
+#                         edge_featurizer=CanonicalBondFeaturizer,
+#                         batch_size=8,
+#                         shuffle=True):
 
-    if tasks == None:
-        tasks = toxcast_tasks
+#     if tasks == None:
+#         tasks = toxcast_tasks
 
-    return MolecularDataLoader(data=get_toxcast(tasks=tasks),
-                                task_names=tasks,
-                                smile_column='Smiles',
-                                cache_file_path=CACHE_FOLDER+'/toxcast.bin',
-                                node_featurizer=node_featurizer,
-                                edge_featurizer=edge_featurizer,
-                                batch_size=batch_size,
-                                shuffle=shuffle)
+#     return MolecularDataLoader(data=get_toxcast(tasks=tasks),
+#                                 task_names=tasks,
+#                                 mol_column='Smiles',
+#                                 cache_file_path=CACHE_FOLDER+'/toxcast.bin',
+#                                 mol_as_smiles=True,
+#                                 node_featurizer=node_featurizer,
+#                                 edge_featurizer=edge_featurizer,
+#                                 batch_size=batch_size,
+#                                 shuffle=shuffle)
 
 def get_clintox():
     data_df = Tox(name = 'ClinTox').get_data()
@@ -410,8 +429,9 @@ def get_ClinTox_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_clintox(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/clintox.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
@@ -431,8 +451,9 @@ def get_HIV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 
     return MolecularDataLoader(data=get_hiv(),
                                 task_names=['Y'],
-                                smile_column='Smiles',
+                                mol_column='Smiles',
                                 cache_file_path=CACHE_FOLDER+'/hiv.bin',
+                                mol_as_smiles=True,
                                 node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
