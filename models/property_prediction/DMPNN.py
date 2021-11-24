@@ -176,7 +176,9 @@ class DMPNN:
                 cuda=self.cuda, 
                 epochs=epochs, 
                 metrics=self.metrics, 
-                optimizer='adam')
+                optimizer='adam',
+                use_node_feat=True,
+                use_edge_feat=True)
 
         self.fitted = True
 
@@ -186,7 +188,8 @@ class DMPNN:
             print("Model has not been trained yet.")
         else:
             bg = batch(test_graphs)
-            return _predict(self.model, bg, self.cuda)
+            return _predict(self.model, bg, self.cuda, 
+                            use_node_feat=True, use_edge_feat=True)
 
     def evaluate(self,
                  val_data_loader):
@@ -196,4 +199,5 @@ class DMPNN:
             return _eval(self.model,
                         val_data_loader, 
                         metrics=self.metrics, 
-                        cuda=self.cuda)
+                        cuda=self.cuda,
+                        use_node_feat=True, use_edge_feat=True)

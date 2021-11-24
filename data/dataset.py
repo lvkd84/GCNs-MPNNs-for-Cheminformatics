@@ -356,48 +356,48 @@ def get_Tox21_dataloader(tasks = None,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
 
-# ToxCast
+ToxCast
 
-# toxcast_tasks = retrieve_label_name_list('Toxcast')
+toxcast_tasks = retrieve_label_name_list('Toxcast')
 
-# def get_toxcast(tasks=None):
-#     if tasks == None:
-#         tasks = toxcast_tasks
-#     else:
-#         tasks = list(set(tasks))
-#         if not all(a in toxcast_tasks for a in tasks):
-#             # Raise error
-#             pass
-#     data_list = []
-#     mols = {}
-#     for task in tasks:
-#         data_list.append(Tox(name = 'ToxCast', label_name = task).get_data().rename(columns={"Y": task}))
-#         for _, row in data_list[-1].iterrows():
-#             if row['Drug_ID'] not in mols:
-#                 mols[row['Drug_ID']] = row['Drug']
-#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-#     for task_data in data_list:
-#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+def get_toxcast(tasks=None):
+    if tasks == None:
+        tasks = toxcast_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in toxcast_tasks for a in tasks):
+            # Raise error
+            pass
+    data_list = []
+    mols = {}
+    for task in tasks:
+        data_list.append(Tox(name = 'ToxCast', label_name = task).get_data().rename(columns={"Y": task}))
+        for _, row in data_list[-1].iterrows():
+            if row['Drug_ID'] not in mols:
+                mols[row['Drug_ID']] = row['Drug']
+        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+    for task_data in data_list:
+        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
 
-# def get_ToxCast_dataloader(tasks = None,
-#                         node_featurizer=CanonicalAtomFeaturizer,
-#                         edge_featurizer=CanonicalBondFeaturizer,
-#                         batch_size=8,
-#                         shuffle=True):
+def get_ToxCast_dataloader(tasks = None,
+                        node_featurizer=CanonicalAtomFeaturizer,
+                        edge_featurizer=CanonicalBondFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
 
-#     if tasks == None:
-#         tasks = toxcast_tasks
+    if tasks == None:
+        tasks = toxcast_tasks
 
-#     return MolecularDataLoader(data=get_toxcast(tasks=tasks),
-#                                 task_names=tasks,
-#                                 smile_column='Smiles',
-#                                 cache_file_path=CACHE_FOLDER+'/toxcast.bin',
-#                                 node_featurizer=node_featurizer,
-#                                 edge_featurizer=edge_featurizer,
-#                                 batch_size=batch_size,
-#                                 shuffle=shuffle)
+    return MolecularDataLoader(data=get_toxcast(tasks=tasks),
+                                task_names=tasks,
+                                smile_column='Smiles',
+                                cache_file_path=CACHE_FOLDER+'/toxcast.bin',
+                                node_featurizer=node_featurizer,
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
 
 def get_clintox():
     data_df = Tox(name = 'ClinTox').get_data()
@@ -438,128 +438,128 @@ def get_HIV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
 
-from tdc.single_pred import QM
+# from tdc.single_pred import QM
 
-#QM7b
-qm7b_tasks = retrieve_label_name_list('QM7b')
-def get_qm7b(tasks=None):
-    if tasks == None:
-        tasks = qm7b_tasks
-    else:
-        tasks = list(set(tasks))
-        if not all(a in qm7b_tasks for a in tasks):
-            # Raise error
-            pass
-    data_list = []
-    mols = {}
-    for task in tasks:
-        data_list.append(QM(name = 'QM7b', label_name = task).get_data().rename(columns={"Y": task}))
-        for _, row in data_list[-1].iterrows():
-            if row['Drug_ID'] not in mols:
-                mols[row['Drug_ID']] = row['Drug']
-        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-    for task_data in data_list:
-        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+# #QM7b
+# qm7b_tasks = retrieve_label_name_list('QM7b')
+# def get_qm7b(tasks=None):
+#     if tasks == None:
+#         tasks = qm7b_tasks
+#     else:
+#         tasks = list(set(tasks))
+#         if not all(a in qm7b_tasks for a in tasks):
+#             # Raise error
+#             pass
+#     data_list = []
+#     mols = {}
+#     for task in tasks:
+#         data_list.append(QM(name = 'QM7b', label_name = task).get_data().rename(columns={"Y": task}))
+#         for _, row in data_list[-1].iterrows():
+#             if row['Drug_ID'] not in mols:
+#                 mols[row['Drug_ID']] = row['Drug']
+#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+#     for task_data in data_list:
+#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Coulomb_matrix'})
 
-def get_QM7b_dataloader(tasks = None,
-                        node_featurizer=CanonicalAtomFeaturizer,
-                        edge_featurizer=CanonicalBondFeaturizer,
-                        batch_size=8,
-                        shuffle=True):
+# def get_QM7b_dataloader(tasks = None,
+#                         node_featurizer=CanonicalAtomFeaturizer,
+#                         edge_featurizer=CanonicalBondFeaturizer,
+#                         batch_size=8,
+#                         shuffle=True):
 
-    if tasks == None:
-        tasks = qm7b_tasks
+#     if tasks == None:
+#         tasks = qm7b_tasks
 
-    return MolecularDataLoader(data=get_qm7b(tasks=tasks),
-                                task_names=tasks,
-                                smile_column='Smiles',
-                                cache_file_path=CACHE_FOLDER+'/qm7.bin',
-                                node_featurizer=node_featurizer,
-                                edge_featurizer=edge_featurizer,
-                                batch_size=batch_size,
-                                shuffle=shuffle)
+#     return MolecularDataLoader(data=get_qm7b(tasks=tasks),
+#                                 task_names=tasks,
+#                                 smile_column='Smiles',
+#                                 cache_file_path=CACHE_FOLDER+'/qm7.bin',
+#                                 node_featurizer=node_featurizer,
+#                                 edge_featurizer=edge_featurizer,
+#                                 batch_size=batch_size,
+#                                 shuffle=shuffle)
 
-#QM8
-qm8_tasks = retrieve_label_name_list('QM8')
-def get_qm8(tasks=None):
-    if tasks == None:
-        tasks = qm8_tasks
-    else:
-        tasks = list(set(tasks))
-        if not all(a in qm8_tasks for a in tasks):
-            # Raise error
-            pass
-    data_list = []
-    mols = {}
-    for task in tasks:
-        data_list.append(QM(name = 'QM8', label_name = task).get_data().rename(columns={"Y": task}))
-        for _, row in data_list[-1].iterrows():
-            if row['Drug_ID'] not in mols:
-                mols[row['Drug_ID']] = row['Drug']
-        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-    for task_data in data_list:
-        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+# #QM8
+# qm8_tasks = retrieve_label_name_list('QM8')
+# def get_qm8(tasks=None):
+#     if tasks == None:
+#         tasks = qm8_tasks
+#     else:
+#         tasks = list(set(tasks))
+#         if not all(a in qm8_tasks for a in tasks):
+#             # Raise error
+#             pass
+#     data_list = []
+#     mols = {}
+#     for task in tasks:
+#         data_list.append(QM(name = 'QM8', label_name = task).get_data().rename(columns={"Y": task}))
+#         for _, row in data_list[-1].iterrows():
+#             if row['Drug_ID'] not in mols:
+#                 mols[row['Drug_ID']] = row['Drug']
+#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+#     for task_data in data_list:
+#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Coulomb_matrix'})
 
-def get_QM8_dataloader(tasks = None,
-                        node_featurizer=CanonicalAtomFeaturizer,
-                        edge_featurizer=CanonicalBondFeaturizer,
-                        batch_size=8,
-                        shuffle=True):
+# def get_QM8_dataloader(tasks = None,
+#                         node_featurizer=CanonicalAtomFeaturizer,
+#                         edge_featurizer=CanonicalBondFeaturizer,
+#                         batch_size=8,
+#                         shuffle=True):
 
-    if tasks == None:
-        tasks = qm8_tasks
+#     if tasks == None:
+#         tasks = qm8_tasks
 
-    return MolecularDataLoader(data=get_qm8(tasks=tasks),
-                                task_names=tasks,
-                                smile_column='Smiles',
-                                cache_file_path=CACHE_FOLDER+'/qm8.bin',
-                                node_featurizer=node_featurizer,
-                                edge_featurizer=edge_featurizer,
-                                batch_size=batch_size,
-                                shuffle=shuffle)
+#     return MolecularDataLoader(data=get_qm8(tasks=tasks),
+#                                 task_names=tasks,
+#                                 smile_column='Smiles',
+#                                 cache_file_path=CACHE_FOLDER+'/qm8.bin',
+#                                 node_featurizer=node_featurizer,
+#                                 edge_featurizer=edge_featurizer,
+#                                 batch_size=batch_size,
+#                                 shuffle=shuffle)
 
-#QM9
-qm9_tasks = retrieve_label_name_list('QM8')
-def get_qm9(tasks=None):
-    if tasks == None:
-        tasks = qm9_tasks
-    else:
-        tasks = list(set(tasks))
-        if not all(a in qm9_tasks for a in tasks):
-            # Raise error
-            pass
-    data_list = []
-    mols = {}
-    for task in tasks:
-        data_list.append(QM(name = 'QM9', label_name = task).get_data().rename(columns={"Y": task}))
-        for _, row in data_list[-1].iterrows():
-            if row['Drug_ID'] not in mols:
-                mols[row['Drug_ID']] = row['Drug']
-        data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-    data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-    for task_data in data_list:
-        data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-    return data_df.rename(columns={'Drug_ID':'ID','Drug':'Smiles'})
+# #QM9
+# qm9_tasks = retrieve_label_name_list('QM9')
+# def get_qm9(tasks=None):
+#     if tasks == None:
+#         tasks = qm9_tasks
+#     else:
+#         tasks = list(set(tasks))
+#         if not all(a in qm9_tasks for a in tasks):
+#             # Raise error
+#             pass
+#     data_list = []
+#     mols = {}
+#     for task in tasks:
+#         data_list.append(QM(name = 'QM9', label_name = task).get_data().rename(columns={"Y": task}))
+#         for _, row in data_list[-1].iterrows():
+#             if row['Drug_ID'] not in mols:
+#                 mols[row['Drug_ID']] = row['Drug']
+#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
+#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
+#     for task_data in data_list:
+#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
+#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Coulomb_matrix'})
 
-def get_QM9_dataloader(tasks = None,
-                        node_featurizer=CanonicalAtomFeaturizer,
-                        edge_featurizer=CanonicalBondFeaturizer,
-                        batch_size=8,
-                        shuffle=True):
+# def get_QM9_dataloader(tasks = None,
+#                         node_featurizer=CanonicalAtomFeaturizer,
+#                         edge_featurizer=CanonicalBondFeaturizer,
+#                         batch_size=8,
+#                         shuffle=True):
 
-    if tasks == None:
-        tasks = qm9_tasks
+#     if tasks == None:
+#         tasks = qm9_tasks
 
-    return MolecularDataLoader(data=get_qm9(tasks=tasks),
-                                task_names=tasks,
-                                smile_column='Smiles',
-                                cache_file_path=CACHE_FOLDER+'/qm9.bin',
-                                node_featurizer=node_featurizer,
-                                edge_featurizer=edge_featurizer,
-                                batch_size=batch_size,
-                                shuffle=shuffle)
+#     return MolecularDataLoader(data=get_qm9(tasks=tasks),
+#                                 task_names=tasks,
+#                                 smile_column='Smiles',
+#                                 cache_file_path=CACHE_FOLDER+'/qm9.bin',
+#                                 node_featurizer=node_featurizer,
+#                                 edge_featurizer=edge_featurizer,
+#                                 batch_size=batch_size,
+#                                 shuffle=shuffle)
 

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from dgllife.utils import Meter
 
@@ -19,27 +20,36 @@ OPTIMIZERS = {
     'adam': torch.optim.Adam
 }
 
-def _predict(model, bg, cuda=False):
+def _predict(model, bg, cuda=False, use_node_feat=True, use_edge_feat=False):
     if cuda:
         if torch.cuda.is_available():
             device = torch.device('cuda')
         else:
-            print("No cuda found. Train on CPU instead")
+            print("No cuda found. Run on CPU instead")
             device = torch.device('cpu')
     else:
         device = torch.device('cpu')
     model.eval()
     bg = bg.to(device)
-    node_feats = bg.ndata.pop('x').to(device)
-    edge_feats = bg.edata.pop('edge_attr').to(device)
-    return model(bg, node_feats, edge_feats)
+    if use_node_feat:
+        node_feats = bg.ndata.pop('x').to(device)
+    if use_edge_feat:
+        edge_feats = bg.edata.pop('edge_attr').to(device)
+    if use_node_feat and use_edge_feat:
+        return model(bg, node_feats, edge_feats)
+    elif use_node_feat:
+        return model(bg, node_feats)
+    else:
+        return model(bg, edge_feats)
 
-def _train(model, train_loader, learning_rate=0.001, cuda=False, epochs=50, metrics='rmse', optimizer='adam'):
+def _train(model, train_loader, learning_rate=0.001, cuda=False, 
+           epochs=50, metrics='rmse', optimizer='adam',
+           use_node_feat=True,use_edge_feat=False):
     if cuda:
         if torch.cuda.is_available():
             device = torch.device('cuda')
         else:
-            print("No cuda found. Train on CPU instead")
+            print("No cuda found. Run on CPU instead")
             device = torch.device('cpu')
     else:
         device = torch.device('cpu')
@@ -57,7 +67,7 @@ def _train(model, train_loader, learning_rate=0.001, cuda=False, epochs=50, metr
             _, bg, labels, masks = batch_data
             labels = labels.to(device)
             masks = masks.to(device)
-            prediction = _predict(model, bg, device)
+            prediction = _predict(model, bg, cuda, use_node_feat, use_edge_feat)
             loss = (loss_criterion(prediction, labels) * (masks != 0).float()).mean()
             optimizer.zero_grad()
             loss.backward()
@@ -72,12 +82,13 @@ def _train(model, train_loader, learning_rate=0.001, cuda=False, epochs=50, metr
     
     print("Finished training.")
 
-def _eval(model, val_data_loader, metrics='rmse', cuda=False):
+def _eval(model, val_data_loader, metrics='rmse', cuda=False,
+          use_node_feat=True,use_edge_feat=False):
     if cuda:
         if torch.cuda.is_available():
             device = torch.device('cuda')
         else:
-            print("No cuda found. Train on CPU instead")
+            print("No cuda found. Run on CPU instead")
             device = torch.device('cpu')
     else:
         device = torch.device('cpu')
@@ -86,7 +97,7 @@ def _eval(model, val_data_loader, metrics='rmse', cuda=False):
         _, bg, labels, masks = batch_data
         labels = labels.to(device)
         masks = masks.to(device)
-        prediction = _predict(model, bg, device)
+        prediction = _predict(model, bg, cuda, use_node_feat, use_edge_feat)
         eval_meter.update(prediction, labels, masks)
     eval_score = np.mean(eval_meter.compute_metric(metrics))
     return eval_score
