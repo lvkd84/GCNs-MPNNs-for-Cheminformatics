@@ -1,48 +1,14 @@
-from typing import Iterable
 import pandas as pd
-import torch
-import dgl
 import random
+import deepchem as dc
+from typing import Iterable
+from functools import partial
 from torch.utils.data import DataLoader
 from dgllife.utils import smiles_to_bigraph, mol_to_bigraph
+from rdkit.Chem.PandasTools import LoadSDF
 from csv_dataset import MoleculeCSVDataset
 from featurizer import *
-
-def collate_molgraphs(data):
-    """Batching a list of datapoints for dataloader.
-    Parameters
-    ----------
-    data : list of 4-tuples.
-        Each tuple is for a single datapoint, consisting of
-        a SMILES, a DGLGraph, all-task labels and a binary
-        mask indicating the existence of labels.
-    Returns
-    -------
-    smiles : list
-        List of smiles
-    bg : DGLGraph
-        The batched DGLGraph.
-    labels : Tensor of dtype float32 and shape (B, T)
-        Batched datapoint labels. B is len(data) and
-        T is the number of total tasks.
-    masks : Tensor of dtype float32 and shape (B, T)
-        Batched datapoint binary mask, indicating the
-        existence of labels.
-    """
-    smiles, graphs, labels, masks = map(list, zip(*data))
-
-    bg = dgl.batch(graphs)
-    bg.set_n_initializer(dgl.init.zero_initializer)
-    bg.set_e_initializer(dgl.init.zero_initializer)
-    labels = torch.stack(labels, dim=0)
-
-    if masks is None:
-        masks = torch.ones(labels.shape)
-    else:
-        masks = torch.stack(masks, dim=0)
-
-    return smiles, bg, labels, masks
-
+from utils import *
 
 class MolecularDataLoader(Iterable):
     """
@@ -98,14 +64,14 @@ class MolecularDataLoader(Iterable):
                                         task_names=task_names,
                                         mol_as_smiles=mol_as_smiles)
 
-        _, graph, _, _ = self.dataset[0]
-        self.num_node_attrs = graph.ndata['x'].shape[1]
-        self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
+        # _, graph, _, _ = self.dataset[0]
+        # self.num_node_attrs = graph.ndata['x'].shape[1]
+        # self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
 
-        self.dataloader = DataLoader(self.dataset,
-                                    collate_fn=collate_molgraphs,
-                                    batch_size=self.batch_size,
-                                    shuffle=self.shuffle)
+        # self.dataloader = DataLoader(self.dataset,
+        #                             collate_fn=collate_molgraphs,
+        #                             batch_size=self.batch_size,
+        #                             shuffle=self.shuffle)
 
     def __len__(self):
         return len(self.dataset)
@@ -543,44 +509,59 @@ def get_HIV_dataloader(node_featurizer=CanonicalAtomFeaturizer,
 #                                 batch_size=batch_size,
 #                                 shuffle=shuffle)
 
-# #QM9
-# qm9_tasks = retrieve_label_name_list('QM9')
-# def get_qm9(tasks=None):
-#     if tasks == None:
-#         tasks = qm9_tasks
-#     else:
-#         tasks = list(set(tasks))
-#         if not all(a in qm9_tasks for a in tasks):
-#             # Raise error
-#             pass
-#     data_list = []
-#     mols = {}
-#     for task in tasks:
-#         data_list.append(QM(name = 'QM9', label_name = task).get_data().rename(columns={"Y": task}))
-#         for _, row in data_list[-1].iterrows():
-#             if row['Drug_ID'] not in mols:
-#                 mols[row['Drug_ID']] = row['Drug']
-#         data_list[-1] = data_list[-1].drop(['Drug'],axis=1)
-#     data_df = pd.DataFrame({'Drug_ID':mols.keys(),'Drug':mols.values()})
-#     for task_data in data_list:
-#         data_df = data_df.merge(task_data,how='outer',on='Drug_ID')
-#     return data_df.rename(columns={'Drug_ID':'ID','Drug':'Coulomb_matrix'})
+#QM9
+GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
+qm9_tasks = retrieve_label_name_list('QM9')
+def get_qm9(tasks=None,get_atom_types=False):
+    if tasks == None:
+        tasks = qm9_tasks
+    else:
+        tasks = list(set(tasks))
+        if not all(a in qm9_tasks for a in tasks):
+            # Raise error
+            pass
+    dataset_file = os.path.join('data', "gdb9.sdf")
+    if os.path.exists(dataset_file):
+        print("Found local copy...")
+    else:
+        print("Downloading...")
+        if not os.path.exists('data'):
+            os.makedirs('data')
+        dc.utils.data_utils.download_url(url=GDB9_URL, dest_dir='data')
+        dc.utils.data_utils.untargz_file(
+            os.path.join('data', "gdb9.tar.gz"), 'data')
+    print('Loading...')
+    labels = pd.read_csv('data/gdb9.sdf.csv',index_col=False)
+    data = LoadSDF('data/gdb9.sdf',smilesName='Smiles',
+                                     molColName='Molecule',includeFingerprints=False)
+    data = data.rename(columns={'ID':'mol_id'})
+    res_df = data.merge(labels, how='left', on='mol_id')
+    if get_atom_types:
+        atom_types = set()
+        for mol in res_df['Molecule'].values:
+            atom_types.update([atom.GetSymbol() for atom in mol.GetAtoms()])
+        res_df.atom_types = atom_types
+    return res_df
 
-# def get_QM9_dataloader(tasks = None,
-#                         node_featurizer=CanonicalAtomFeaturizer,
-#                         edge_featurizer=CanonicalBondFeaturizer,
-#                         batch_size=8,
-#                         shuffle=True):
+def get_QM9_dataloader(tasks = None,
+                        node_featurizer=AtomTypeFeaturizer,
+                        edge_featurizer=BondDistanceFeaturizer,
+                        batch_size=8,
+                        shuffle=True):
 
-#     if tasks == None:
-#         tasks = qm9_tasks
+    if tasks == None:
+        tasks = qm9_tasks
 
-#     return MolecularDataLoader(data=get_qm9(tasks=tasks),
-#                                 task_names=tasks,
-#                                 smile_column='Smiles',
-#                                 cache_file_path=CACHE_FOLDER+'/qm9.bin',
-#                                 node_featurizer=node_featurizer,
-#                                 edge_featurizer=edge_featurizer,
-#                                 batch_size=batch_size,
-#                                 shuffle=shuffle)
+    df = get_qm9(tasks=tasks,get_atom_types=True)
+    atom_types = df.atom_types
+
+    return MolecularDataLoader(data=df,
+                                task_names=tasks,
+                                mol_column='Molecule',
+                                cache_file_path=CACHE_FOLDER+'/qm9.bin',
+                                mol_as_smiles=False,
+                                node_featurizer=partial(node_featurizer,atom_types=atom_types),
+                                edge_featurizer=edge_featurizer,
+                                batch_size=batch_size,
+                                shuffle=shuffle)
 

@@ -11,7 +11,7 @@ from collections import defaultdict
 
 ########### ATOM Featurizing Functions ############
 def atomTypeNum(atom, allowable_dic):
-    return allowable_dic[atom.GetSymbol()]
+    return [allowable_dic[atom.GetSymbol()]]
 
 ################ ATOM Featurizers #################
 class CombinedAtomFeaturizer(BaseAtomFeaturizer):
@@ -54,9 +54,9 @@ Including here for collecting and lookup purposes.
 CanonicalBondFeaturizer = CanonicalBondFeaturizer
 
 class BondDistanceFeaturizer:
-    def __init__(self,bond_data_field='bond_dist'):
+    def __init__(self,bond_data_field='bond_dist',self_loop=False):
         self.bond_data_field = bond_data_field
-        self._self_loop = False
+        self._self_loop = self_loop
 
     # Adopt from DeepChem: https://github.com/deepchem/deepchem/blob/master/deepchem/feat/molecule_featurizers/coulomb_matrices.py
     def get_interatomic_distances(self,conf,bond):
@@ -100,8 +100,9 @@ class BondDistanceFeaturizer:
 
         # convert the feature to a float array
         processed_features = dict()
-        feat = np.stack(bond_features[self.bond_data_field])
-        processed_features[self.bond_data_field] = F.zerocopy_from_numpy(feat.astype(np.float32))
+        if len(bond_features) > 0:
+            feat = np.stack(bond_features[self.bond_data_field])
+            processed_features[self.bond_data_field] = F.zerocopy_from_numpy(feat.astype(np.float32))
 
         if self._self_loop and num_bonds > 0:
             num_atoms = mol.GetNumAtoms()
