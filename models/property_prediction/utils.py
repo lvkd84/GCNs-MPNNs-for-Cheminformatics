@@ -75,7 +75,7 @@ def _train(model, train_loader, learning_rate=0.001, cuda=False,
             train_meter.update(prediction, labels, masks)
             if batch_id % 100 == 0:
                 print('epoch {:d}/{:d}, batch {:d}/{:d}, loss {:.4f}'.format(
-                    epoch + 1, 10, batch_id + 1, len(train_loader), loss.item()))
+                    epoch + 1, epochs, batch_id + 1, len(train_loader), loss.item()))
         train_score = np.mean(train_meter.compute_metric(metrics))
         print('epoch {:d}/{:d}, training {} {:.4f}'.format(
             epoch + 1, epochs, 'score', train_score))

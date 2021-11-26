@@ -15,8 +15,8 @@ class MolecularDataLoader(Iterable):
     Data loader for molecular data.
     Parameters
     ----------
-    data_path
-        Path to the data file. File must be csv.
+    data
+        Panda's DataFrame.
     task_names
         Names of label columns. Each column corresponds to a task.
     mol_column
@@ -64,14 +64,14 @@ class MolecularDataLoader(Iterable):
                                         task_names=task_names,
                                         mol_as_smiles=mol_as_smiles)
 
-        # _, graph, _, _ = self.dataset[0]
-        # self.num_node_attrs = graph.ndata['x'].shape[1]
-        # self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
+        _, graph, _, _ = self.dataset[5]
+        self.num_node_attrs = graph.ndata['x'].shape[1]
+        self.num_edge_attrs = graph.edata['edge_attr'].shape[1]
 
-        # self.dataloader = DataLoader(self.dataset,
-        #                             collate_fn=collate_molgraphs,
-        #                             batch_size=self.batch_size,
-        #                             shuffle=self.shuffle)
+        self.dataloader = DataLoader(self.dataset,
+                                    collate_fn=collate_molgraphs,
+                                    batch_size=self.batch_size,
+                                    shuffle=self.shuffle)
 
     def __len__(self):
         return len(self.dataset)

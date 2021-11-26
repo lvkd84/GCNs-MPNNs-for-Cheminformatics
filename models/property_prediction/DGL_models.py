@@ -37,6 +37,8 @@ class GAT:
             epochs=50,
             learning_rate=0.001):
         _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
         in_feats = ex_g.node_attr_schemes()['x'].shape[0]
         n_tasks = ex_masks.shape[0]
         self.model = GATPredictor(in_feats=in_feats, 
@@ -106,6 +108,8 @@ class GCN:
             epochs=50,
             learning_rate=0.001):
         _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
         in_feats = ex_g.node_attr_schemes()['x'].shape[0]
         n_tasks = ex_masks.shape[0]
         self.model = GCNPredictor(in_feats=in_feats, 
@@ -171,6 +175,8 @@ class MPNN:
             epochs=50,
             learning_rate=0.001):
         _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
         node_in_feats = ex_g.node_attr_schemes()['x'].shape[0]
         edge_in_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
         n_tasks = ex_masks.shape[0]
@@ -244,6 +250,8 @@ class WeaveNet:
             epochs=50,
             learning_rate=0.001):
         _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
         node_in_feats = ex_g.node_attr_schemes()['x'].shape[0]
         edge_in_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
         n_tasks = ex_masks.shape[0]

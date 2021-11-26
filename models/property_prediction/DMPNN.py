@@ -160,6 +160,8 @@ class DMPNN:
             epochs=50,
             learning_rate=0.001):
         _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
         in_edge_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
         in_node_feats = ex_g.node_attr_schemes()['x'].shape[0]
         num_tasks = ex_masks.shape[0]
