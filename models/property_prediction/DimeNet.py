@@ -227,3 +227,6 @@ class DimePredictor(nn.Module):
             P += self.output_blocks[i + 1](g)
         
         return P
+
+class DimeNet:
+    pass

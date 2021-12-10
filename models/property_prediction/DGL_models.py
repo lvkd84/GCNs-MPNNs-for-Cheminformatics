@@ -4,10 +4,12 @@ from dgllife.model.model_zoo.mgcn_predictor import MGCNPredictor
 from dgllife.model.model_zoo.mpnn_predictor import MPNNPredictor
 from dgllife.model.model_zoo.schnet_predictor import SchNetPredictor
 from dgllife.model.model_zoo.weave_predictor import WeavePredictor
+from dgllife.model.model_zoo.pagtn_predictor import PAGTNPredictor
+from dgllife.model.model_zoo.gin_predictor import GINPredictor
 
 from dgl import batch
 
-from torch.nn import Tanh
+from torch.nn import Tanh, LeakyReLU
 from torch.nn.functional import relu
 
 from utils import _train, _eval, _predict
@@ -188,6 +190,77 @@ class MPNN:
                                    num_step_message_passing=self.num_step_message_passing, 
                                    num_step_set2set=self.num_step_set2set,
                                    num_layer_set2set=self.num_layer_set2set)
+        _train(self.model, 
+                train_loader, 
+                learning_rate=learning_rate, 
+                cuda=self.cuda, 
+                epochs=epochs, 
+                metrics=self.metrics, 
+                optimizer='adam',
+                use_node_feat=True,
+                use_edge_feat=True)
+
+    def predict(self,
+                test_graphs):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            bg = batch(test_graphs)
+            return _predict(self.model, bg, self.cuda,
+                            use_node_feat=True, use_edge_feat=True)
+
+    def evaluate(self,
+                 val_data_loader):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            return _eval(self.model,
+                        val_data_loader, 
+                        metrics=self.metrics, 
+                        cuda=self.cuda,
+                        use_node_feat=True, use_edge_feat=True)
+
+class PAGTN:
+
+    def __init__(self,
+                 node_out_feats=64,
+                 node_hidden_feats=128,
+                 num_step_message_passing=5,
+                 num_attn_heads=1,
+                 drop_out_rate=0.1,
+                 activation = LeakyReLU(0.2),
+                 readout='sum',
+                 cuda=False, metrics='rmse'):
+        self.node_out_feats = node_out_feats
+        self.node_hidden_feats = node_hidden_feats
+        self.num_step_message_passing = num_step_message_passing
+        self.num_attn_heads = num_attn_heads
+        self.drop_out_rate = drop_out_rate
+        self.activation = activation
+        self.readout = readout
+        self.cuda = cuda
+        self.metrics = metrics
+
+    def fit(self,
+            train_loader,
+            epochs=50,
+            learning_rate=0.001):
+        _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
+        node_in_feats = ex_g.node_attr_schemes()['x'].shape[0]
+        edge_in_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
+        n_tasks = ex_masks.shape[0]
+        self.model = PAGTNPredictor(node_in_feats=node_in_feats,
+                                    node_out_feats=self.node_out_feats,
+                                    node_hid_feats=self.node_hidden_feats,
+                                    edge_feats=edge_in_feats,
+                                    depth=self.num_step_message_passing,
+                                    nheads=self.num_attn_heads,
+                                    dropout=self.drop_out_rate,
+                                    activation=self.activation,
+                                    n_tasks=n_tasks,
+                                    mode=self.readout)
         _train(self.model, 
                 train_loader, 
                 learning_rate=learning_rate, 

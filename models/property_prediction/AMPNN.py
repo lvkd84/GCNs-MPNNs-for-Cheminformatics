@@ -5,6 +5,8 @@ from dgl.nn.pytorch import NNConv
 from dgl.nn.functional import edge_softmax
 import dgl.function as fn
 
+from dgl import batch
+
 class AMPNNConv(nn.Module):
 
     def __init__(self,in_feats,out_feats,msg_fn,attn_fn):
@@ -192,3 +194,73 @@ class AMPNNPredictor(nn.Module):
         node_feats = self.gnn(g, node_feats, edge_feats)
         graph_feats = self.readout(g, node_feats)
         return self.predict(graph_feats)
+
+from utils import _train, _eval, _predict
+class AMPNN:
+    def __init__(self,  
+                 node_out_feats=64,
+                 edge_hidden_feats=128,
+                 num_message_passing=6,
+                 drop_out_rate=0,
+                 shared_message_passing_weights=True,
+                 cuda=False,
+                 metrics='rmse'):
+        
+        self.cuda = cuda
+        self.node_out_feats = node_out_feats
+        self.edge_hidden_feats = edge_hidden_feats
+        self.num_message_passing = num_message_passing
+        self.drop_out_rate = drop_out_rate
+        self.shared_message_passing_weights = shared_message_passing_weights
+        self.fitted = False
+        self.metrics = metrics
+
+    def fit(self,
+            train_loader,
+            epochs=50,
+            learning_rate=0.001):
+        _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
+        edge_in_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
+        node_in_feats = ex_g.node_attr_schemes()['x'].shape[0]
+        num_tasks = ex_masks.shape[0]
+        self.model = AMPNNPredictor(edge_in_feats,
+                                    node_in_feats,
+                                    node_out_feats=self.node_out_feats,
+                                    edge_hidden_feats=self.edge_hidden_feats,
+                                    n_tasks=num_tasks,
+                                    num_step_message_passing=self.num_message_passing,
+                                    drop_out_rate=self.drop_out_rate,
+                                    shared_message_passing_weights=self.shared_message_passing_weights)
+        _train(self.model, 
+                train_loader, 
+                learning_rate=learning_rate, 
+                cuda=self.cuda, 
+                epochs=epochs, 
+                metrics=self.metrics, 
+                optimizer='adam',
+                use_node_feat=True,
+                use_edge_feat=True)
+
+        self.fitted = True
+
+    def predict(self,
+                test_graphs):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            bg = batch(test_graphs)
+            return _predict(self.model, bg, self.cuda, 
+                            use_node_feat=True, use_edge_feat=True)
+
+    def evaluate(self,
+                 val_data_loader):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            return _eval(self.model,
+                        val_data_loader, 
+                        metrics=self.metrics, 
+                        cuda=self.cuda,
+                        use_node_feat=True, use_edge_feat=True)
