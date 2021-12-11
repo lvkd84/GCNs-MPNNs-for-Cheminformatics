@@ -1,3 +1,4 @@
+from os import error
 from dgllife.model.model_zoo.gat_predictor import GATPredictor
 from dgllife.model.model_zoo.gcn_predictor import GCNPredictor
 from dgllife.model.model_zoo.mgcn_predictor import MGCNPredictor
@@ -295,7 +296,72 @@ class MGCN:
     pass
 
 class SchNet:
-    pass
+    def __init__(self,
+                 node_feats=64,
+                 hidden_feats=None,
+                 predictor_hidden_feats=64,
+                 cutoff=1,
+                 gap=0.1,
+                 cuda=False, metrics='rmse'):
+        self.node_feats = node_feats
+        self.hidden_feats = hidden_feats
+        self.predictor_hidden_feats = predictor_hidden_feats
+        self.cutoff = cutoff
+        self.gap = gap
+        self.cuda = cuda
+        self.metrics = metrics
+
+    def fit(self,
+            train_loader,
+            epochs=50,
+            learning_rate=0.001):
+        _, ex_g, _, ex_masks = next(iter(train_loader))
+        while not (len(ex_g.node_attr_schemes()) > 0 and len(ex_g.node_attr_schemes()) > 0):
+            _, ex_g, _, ex_masks = next(iter(train_loader))
+        edge_in_feats = ex_g.edge_attr_schemes()['edge_attr'].shape[0]
+        if edge_in_feats != 1:
+            raise error("SchNet expects edge attributes of size 1, which is the edge length.")
+        n_tasks = ex_masks.shape[0]
+        try:
+            num_node_types = len(train_loader.df.atom_types)
+        except AttributeError:
+            raise AttributeError("SchNet expects information about the number of different node types (atom types). Please use AtomTypeFeaturizer")
+        self.model = SchNetPredictor(node_feats=self.node_feats, 
+                                     hidden_feats=self.hidden_feats, 
+                                     n_tasks=n_tasks, 
+                                     num_node_types=num_node_types, 
+                                     cutoff=self.cutoff, 
+                                     gap=self.gap, 
+                                     predictor_hidden_feats=self.predictor_hidden_feats)
+        _train(self.model, 
+                train_loader, 
+                learning_rate=learning_rate, 
+                cuda=self.cuda, 
+                epochs=epochs, 
+                metrics=self.metrics, 
+                optimizer='adam',
+                use_node_feat=True,
+                use_edge_feat=True)
+
+    def predict(self,
+                test_graphs):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            bg = batch(test_graphs)
+            return _predict(self.model, bg, self.cuda,
+                            use_node_feat=True, use_edge_feat=True)
+
+    def evaluate(self,
+                 val_data_loader):
+        if not self.fitted:
+            print("Model has not been trained yet.")
+        else:
+            return _eval(self.model,
+                        val_data_loader, 
+                        metrics=self.metrics, 
+                        cuda=self.cuda,
+                        use_node_feat=True, use_edge_feat=True)
 
 class WeaveNet:
 

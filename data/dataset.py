@@ -552,15 +552,19 @@ def get_QM9_dataloader(tasks = None,
     if tasks == None:
         tasks = qm9_tasks
 
-    df = get_qm9(tasks=tasks,get_atom_types=True)
-    atom_types = df.atom_types
+    if node_featurizer == AtomTypeFeaturizer:
+        df = get_qm9(tasks=tasks,get_atom_types=True)
+        atom_types = df.atom_types
+        node_featurizer = partial(node_featurizer,atom_types=atom_types)
+    else:
+        df = get_qm9(tasks=tasks,get_atom_types=False)
 
     return MolecularDataLoader(data=df,
                                 task_names=tasks,
                                 mol_column='Molecule',
                                 cache_file_path=CACHE_FOLDER+'/qm9.bin',
                                 mol_as_smiles=False,
-                                node_featurizer=partial(node_featurizer,atom_types=atom_types),
+                                node_featurizer=node_featurizer,
                                 edge_featurizer=edge_featurizer,
                                 batch_size=batch_size,
                                 shuffle=shuffle)
